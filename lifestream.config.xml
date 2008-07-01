@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+ 
+<config>
+<stream name="flickr" feedURL="http://api.flickr.com/services/feeds/photos_public.gne?id=45643934@N00&amp;format=rss_200" URL="http://flickr.com/photos/sillyness/" label="Flickr, what I see" />
+
+<stream name="lastfm" feedURL="http://ws.audioscrobbler.com/1.0/user/chrisjdavis/recenttracks.rss" URL="http://last.fm/user/chrisjdavis" label="Last.fm, what I hear" />
+       
+<stream name="blog" feedURL="http://www.chrisjdavis.org/atom/1" URL="/" label="Sillyness, what I think" />
+
+<stream name="viddler" feedURL="http://www.viddler.com/explore/chrisjdavis/videos/feed/" URL="http://www.viddler.com/explore/chrisjdavis" label="Viddler, see &amp; hear me" />
+				
+<stream name="magnolia" feedURL="http://ma.gnolia.com/rss/full/people/chrisjdavis" URL="http://ma.gnolia.com/people/chrisjdavis/bookmarks" label="Ma.gnolia, boomarks yo." />
+
+<stream name="allconsuming" feedURL="feed://www.allconsuming.net/person/chrisjdavis/rss" URL="http://allconsuming.net/person/chrisjdavis" label="What I am consuming." />
+		
+<cache location="user/tmp" expire="60" />
+</config>
