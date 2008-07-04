@@ -166,8 +166,8 @@ class LifeStream extends Plugin
 		
 	}
 	
-	public function json_entries($type = 'any', $offset = 0, $number = 20) {
-		return json_encode($this->get_entries($type, $offset, $number, 'array'));
+	public function action_ajax_lifestream_entries($type = 'any', $offset = 0, $number = 20) {
+		echo json_encode($this->get_entries($type, $offset, $number, 'array'));
 	}
 	
 }
@@ -186,6 +186,8 @@ class LifeStreamHandler extends ActionHandler
 	
 	public function act_display_lifestream() {
 		$vars = Controller::get_handler_vars();
+		
+		$this->fetch_feeds();
 				
 		if(!isset($vars['type'])) {
 			$vars['type'] = 'any';
@@ -217,16 +219,13 @@ class LifeStreamHandler extends ActionHandler
 					$data['date']= strtotime( substr( $entry->get_date(), 0, 25 ) );
 					if ( $enclosure = $entry->get_enclosure( 0 ) ) {
 						$data['data'] = $enclosure->get_link();
+						$this->stream_contents[$date]= $data;
 					}
-					
-					$this->stream_contents[$date]= $data;
 					
 				}
 			}
 		}
-		
-		ksort( $this->stream_contents );
-		
+
 		LifeStream::insert($this->stream_contents);
 		
 		return $this->stream_contents;
