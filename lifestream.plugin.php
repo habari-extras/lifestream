@@ -60,8 +60,8 @@ class LifeStream extends Plugin
 	public function filter_rewrite_rules( $rules ) {
 		$rules[] = new RewriteRule(array(
 			'name' => 'lifestream',
-			'parse_regex' => '/^' . Options::get('lifestream__lifeurl') . '[\/]{0,1}$/i',
-			'build_str' => Options::get('lifestream__lifeurl'),
+			'parse_regex' => '%^' . Options::get('lifestream__lifeurl') . '(/type/(?P<type>[^/]*))?(?:/page/(?P<page>\d+))?/?$%i',
+			'build_str' => Options::get('lifestream__lifeurl') . '(/{$type})(/page/{$page})',
 			'handler' => 'LifeStreamHandler',
 			'action' => 'display_lifestream',
 			'priority' => 7,
@@ -120,6 +120,11 @@ class LifeStream extends Plugin
 				// Mark the field as required
 				$rewritebase->add_validator('validate_required');
 				
+				// Add a text control for the entries per page
+				$perpage= $ui->append('text', 'perpage', 'lifestream__perpage', _t('Items Per Page'));
+				// Mark the field as required
+				$perpage->add_validator('validate_required');
+				
 				$submit= $ui->append( 'submit', 'submit', _t('Save') );
 
 				// Display the form
@@ -135,7 +140,7 @@ class LifeStream extends Plugin
 		}
 	}
 
-	public function get_entries($type = 'any', $offset = 0, $number = 20) {
+	public function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object') {
 		$query= '';
 		$query.= 'SELECT * FROM ' . DB::table('l_data');
 		
@@ -146,8 +151,23 @@ class LifeStream extends Plugin
 		$query.= ' ORDER BY date DESC';
 		$query.= ' LIMIT ' . $offset . ', ' . $number;
 		$results = DB::get_results( $query );
+
+		if($format == 'object') {
+			return $results;
+		} elseif($format == 'array') {
+			$return = array();
+			foreach($results as $result) {
+				$return[] = $result->to_array();
+			}
+			return $return;
+		} else {
+			return $results;
+		}
 		
-		return $results;
+	}
+	
+	public function json_entries($type = 'any', $offset = 0, $number = 20) {
+		return json_encode($this->get_entries($type, $offset, $number, 'array'));
 	}
 	
 }
@@ -156,6 +176,7 @@ class LifeStreamHandler extends ActionHandler
 {
 	private $stream_contents;
 	private $config;
+	private $streams;
 	private $theme= null;
 	
 	public function __construct() {
@@ -164,16 +185,23 @@ class LifeStreamHandler extends ActionHandler
 	}
 	
 	public function act_display_lifestream() {
+		$vars = Controller::get_handler_vars();
+				
+		if(!isset($vars['type'])) {
+			$vars['type'] = 'any';
+		}
 		
-		$this->fetch_fields();
+		if(!isset($vars['page'])) {
+			$vars['page'] = 0;
+		}
 		
-		$this->theme->assign( 'lifestream', LifeStream::get_entries() );
+		$offset = $vars['page'] * Options::get('lifestream__perpage');
+		
+		$this->theme->assign( 'lifestream', LifeStream::get_entries($vars['type'], $offset, Options::get('lifestream__perpage')) );
 		$this->theme->assign( 'title', 'Lifestream - ' . Options::get( 'title' ) );
 		$this->theme->assign( 'streams', $this->config->stream );
 		$this->theme->display( 'lifestream' );
 	}
-	
-
 	
 	public function fetch_feeds() {
 		foreach ( $this->config->stream as $stream ) {
