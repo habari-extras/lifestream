@@ -126,13 +126,14 @@ class LifeStream extends Plugin
 				// Create a new Form called 'lifestream'
 				$ui = new FormUI( 'lifestream' );
 				// Add a text control for the feed URL
-				$feedurl= $ui->add('text', 'lifeurl', 'Lifestream URL');
+				$feedurl= $ui->append('text', 'lifeurl', 'lifestream__lifeurl', _t('Lifestream URL'));
 				// Mark the field as required
 				$feedurl->add_validator('validate_required');
 				// Mark the field as requiring a valid URL
 				$feedurl->add_validator('validate_url');
-				// When the form is successfully completed, call $this->updated_config()
-				$ui->on_success(array($this, 'updated_config'));
+				
+				$submit= $ui->append( 'submit', 'submit', _t('Save') );
+
 				// Display the form
 				$ui->out();
 				break;
