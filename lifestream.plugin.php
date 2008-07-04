@@ -1,6 +1,6 @@
 <?php
 
-//require 'simplepie.php';
+require 'simplepie.php';
 require 'idna_convert.php';
 
 class LifeStream extends Plugin
@@ -26,20 +26,11 @@ class LifeStream extends Plugin
 		
 		switch( DB::get_driver_name() ) { 
 			case 'sqlite':
-				$q= '';
-				$q= "CREATE TABLE " . DB::table('l_source') . "( 
-					id INTEGER NOT NULL AUTOINCREMENT,
-					title VARCHAR(255) NOT NULL,
-					profile_url VARCHAR(255) NOT NULL,
-					feed_url VARCHAR(255) NOT NULL,
-					favicon VARCHAR(255) NOT NULL,
-					CREATE UNIQUE INDEX IF NOT EXISTS id ON ". DB::table('l_source') . "(id);
-				);";
-				
-				$q .= "CREATE TABLE " . DB::table('l_data') . "(
+				$q = "CREATE TABLE " . DB::table('l_data') . "(
 					id INTIGER NOT NULL AUTOINCREMENT,
 					name VARCHAR(255) NOT NULL,
 					content TEXT NOT NULL,
+					data BLOB NOT NULL,
 					date VARCHAR(255) NOT NULL,
 					link VARCHAR(255) NOT NULL,
 					enabled TINYINT(1) NOT NULL,
@@ -48,19 +39,11 @@ class LifeStream extends Plugin
 				return $sql = DB::dbdelta( $q );
 			break;
 			case 'mysql' :
-				$q= '';
-				$q= "CREATE TABLE " . DB::table('l_source') . "( 
-					id INT UNSIGNED NOT NULL AUTO_INCREMENT,
-					title VARCHAR(255) NOT NULL,
-					profile_url VARCHAR(255) NOT NULL,
-					feed_url VARCHAR(255) NOT NULL,
-					favicon VARCHAR(255) NOT NULL,
-					UNIQUE KEY id (id)
-				);";
-				$q .= "CREATE TABLE " . DB::table('l_data') . "(
+				$q = "CREATE TABLE " . DB::table('l_data') . "(
 					id INT UNSIGNED NOT NULL AUTO_INCREMENT,
 					name VARCHAR(255) NOT NULL,
 					content TEXT NOT NULL,
+					data BLOB NOT NULL,
 					date VARCHAR(255) NOT NULL,
 					link VARCHAR(255) NOT NULL,
 					enabled TINYINT(1) NOT NULL,
@@ -77,8 +60,8 @@ class LifeStream extends Plugin
 	public function filter_rewrite_rules( $rules ) {
 		$rules[] = new RewriteRule(array(
 			'name' => 'lifestream',
-			'parse_regex' => '/^lifestream[\/]{0,1}$/i',
-			'build_str' => 'lifestream',
+			'parse_regex' => '/^' . Options::get('lifestream__lifeurl') . '[\/]{0,1}$/i',
+			'build_str' => Options::get('lifestream__lifeurl'),
 			'handler' => 'LifeStreamHandler',
 			'action' => 'display_lifestream',
 			'priority' => 7,
@@ -126,11 +109,16 @@ class LifeStream extends Plugin
 				// Create a new Form called 'lifestream'
 				$ui = new FormUI( 'lifestream' );
 				// Add a text control for the feed URL
-				$feedurl= $ui->append('text', 'lifeurl', 'lifestream__lifeurl', _t('Lifestream URL'));
+				$feedurl= $ui->append('text', 'feedurl', 'lifestream__feedurl', _t('Feed URL'));
 				// Mark the field as required
 				$feedurl->add_validator('validate_required');
 				// Mark the field as requiring a valid URL
 				$feedurl->add_validator('validate_url');
+				
+				// Add a text control for the rewrite base
+				$rewritebase= $ui->append('text', 'lifeurl', 'lifestream__lifeurl', _t('Lifestream URL'));
+				// Mark the field as required
+				$rewritebase->add_validator('validate_required');
 				
 				$submit= $ui->append( 'submit', 'submit', _t('Save') );
 
@@ -139,6 +127,27 @@ class LifeStream extends Plugin
 				break;
 			}
 		}
+	}
+	
+	public function insert($entries = array()) {
+		foreach($entries as $entry) {
+			DB::insert(DB::table('l_data'), $entry);
+		}
+	}
+
+	public function get_entries($type = 'any', $offset = 0, $number = 20) {
+		$query= '';
+		$query.= 'SELECT * FROM ' . DB::table('l_data');
+		
+		if($type != 'any') {
+			$query.= " WHERE name= '$type'";
+		}
+		
+		$query.= ' ORDER BY date DESC';
+		$query.= ' LIMIT ' . $offset . ', ' . $number;
+		$results = DB::get_results( $query );
+		
+		return $results;
 	}
 	
 }
@@ -150,89 +159,23 @@ class LifeStreamHandler extends ActionHandler
 	private $theme= null;
 	
 	public function __construct() {
+		$this->config= simplexml_load_file( dirname( __FILE__ ) . '/lifestream.config.xml' );
 		$this->theme= Themes::create();
 	}
 	
 	public function act_display_lifestream() {
-		$this->archive_feeds();
-		$this->theme->assign( 'lifestream', $this->stream_contents );
+		
+		$this->fetch_fields();
+		
+		$this->theme->assign( 'lifestream', LifeStream::get_entries() );
 		$this->theme->assign( 'title', 'Lifestream - ' . Options::get( 'title' ) );
 		$this->theme->assign( 'streams', $this->config->stream );
 		$this->theme->display( 'lifestream' );
 	}
-
-	private function fetch_remote_file( $file ) {
-
-		$path = parse_url( $file );
-
-		if ($fs = @fsockopen($path['host'], isset($path['port'])?$path['port']:80)) {
-
-			$header = "GET " . $path['path'] . " HTTP/1.0\r\nHost: " . $path['host'] . "\r\n\r\n";
-
-			fwrite($fs, $header);
-
-			$buffer = '';
-
-			while ($tmp = fread($fs, 1024)) { $buffer .= $tmp; }
-
-			preg_match('/HTTP\/[0-9\.]{1,3} ([0-9]{3})/', $buffer, $http);
-			preg_match('/Location: (.*)/', $buffer, $redirect);
-
-			if (isset($redirect[1]) && $file != trim($redirect[1])) { return self::fetch_remote_file(trim($redirect[1])); }
-
-			if (isset($http[1]) && $http[1] == 200) { return substr($buffer, strpos($buffer, "\r\n\r\n") +4); } else { return false; }
-
-		} else { return false; }
-
-	}
 	
-	private function favicache( $feed, $name ) {
-		$folder= '/user/plugins/lifestream/images/';
 
-		if ( !is_dir( ABSPATH . $folder ) ) { 
-			mkdir( ABSPATH . $folder, 0777 ); 
-		}
-
-		$url= parse_url( $feed );
-
-		$cache= self::fetch_remote_file( 'http://' . $url['host'] . '/favicon.ico' );
-		
-		if ( !$cache ) {
-			preg_match( '/<link.*(?:rel="icon" href="(.*)"|href="(.*)" rel="icon").*>/U',
-			self::fetch_remote_file( $_POST['link_url'] ), $matches );
-			$cache= self::fetch_remote_file( $matches[1] );
-		}
-
-		if ( $cache ) {
-			file_put_contents( HABARI_PATH . '/' . $folder . md5( $url['host'] ) . '.ico', $cache );
-			$icon= get_option( 'siteurl' ) . $folder . md5( $url['host'] ) . '.ico';
-			} elseif( is_file( HABARI_PATH  . '/' . 'user/plugins/lifestream/images/icon.gif' ) ) {
-				$icon= Site::get_url( 'habari' ) . 'user/plugins/lifestream/images/icon.gif';
-		}
-		
-		$wpdb->query( 'UPDATE `' . DB::table( 'l_source' ) . '` SET `favicon` = "' . $icon . '" WHERE `title` = "' . $name . '"' );
-		return false;
-	}
 	
-	/**
-	* Grab all the sources we have stored in the db.
-	* <code>
-	* foreach( $streams->collect() as $source ) {
-	* 	echo $source->title;	
-	* }
-	* </code>
-	*/
-	public function collect() {
-		$sources= DB::get_results( "SELECT * FROM " . DB::table('l_data') );
-		if( is_array( $sources ) ) {
-			return $sources;
-		} else {
-			return array();
-		}
-	}	
-	
-	private function get_feeds() {
-		$this->config= simplexml_load_file( dirname( __FILE__ ) . '/lifestream.config.xml' );
+	public function fetch_feeds() {
 		foreach ( $this->config->stream as $stream ) {
 			$feed = new SimplePie( (string) $stream['feedURL'], HABARI_PATH . '/' . (string) $this->config->cache['location'], (int) $this->config->cache['expire'] );
 			$feed->handle_content_type();
@@ -240,56 +183,27 @@ class LifeStreamHandler extends ActionHandler
 				foreach( $feed->get_items() as $entry ) {
 					$name= $stream['name'];
 					$date = strtotime( substr( $entry->get_date(), 0, 25 ) );
-					$this->stream_contents[$date]['name']= (string) $name;
-					$this->stream_contents[$date]['title']= $entry->get_title();
-					$this->stream_contents[$date]['link']= $entry->get_permalink();
-					$this->stream_contents[$date]['date']= strtotime( substr( $entry->get_date(), 0, 25 ) );
+					$data['name']= (string) $name;
+					$data['content']= $entry->get_title();
+					$data['link']= $entry->get_permalink();
+					$data['date']= strtotime( substr( $entry->get_date(), 0, 25 ) );
 					if ( $enclosure = $entry->get_enclosure( 0 ) ) {
-						$this->stream_contents[$date]['enclosure'] = $enclosure->get_link();
+						$data['data'] = $enclosure->get_link();
 					}
+					
+					$this->stream_contents[$date]= $data;
+					
 				}
 			}
 		}
-		krsort( $this->stream_contents );
+		
+		ksort( $this->stream_contents );
+		
+		LifeStream::insert($this->stream_contents);
+		
 		return $this->stream_contents;
 	}
-	
-	public function archive_feeds() {
-		foreach( self::get_feeds() as $archive ) {
-			if( !DB::exists( DB::table('l_data'), array( 'link' => $archive['link'], 'date' => $archive['date'] ) ) ) {
-				$insert= array();
-				$insert['name']= addslashes( $archive['name'] );
-				$insert['content']= addslashes( $archive['title'] );
-				$insert['date']= $archive['date'];
-				$insert['link']= $archive['link'];
-				$insert['enabled']= 1;
-				return DB::insert( DB::table( 'l_data' ), $insert );
-			}
-		}
-	}
-	
-	/**
-	* Method to grab all of our lifestream data from the DB.
-	* <code>
-	* foreach( $streams->show_streams() as $stream ) {
-	*	// do something clever
-	* }
-	* </code>
-	*/
-	public function show_streams() {
-		$show= DB::get_results( "SELECT * FROM " . DB::table( 'l_data' ) . " WHERE enabled = 1 ORDER BY date DESC" );
-		return $show;
-	}
-	
-	public function source( $name ) {
-		$which= DB::get_results( "SELECT profile_url, favicon FROM " . DB::table( 'l_source' ) ." WHERE title = '$name'" );
-		return $which[0];
-	}
-	
-	public function legend_types() {
-		$types= DB::get_results( "SELECT * FROM " . DB::table( 'l_source' ) ." ORDER BY title" );
-		return $types;
-	}	
+
 }
 
 ?>
