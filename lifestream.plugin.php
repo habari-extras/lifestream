@@ -144,13 +144,18 @@ class LifeStream extends Plugin
 		$query= '';
 		$query.= 'SELECT * FROM ' . DB::table('l_data');
 		
-		if($type != 'any') {
+		if($type != 'any' && $start == null && $end == null) {
 			$query.= " WHERE name= '$type'";
 		}
 		
 		if($start != null && $end != null) {
 			$query.= " WHERE date BETWEEN $start AND $end";
+			if($type != 'any') {
+				$query.= " AND name= '$type'";
+			}
 		}
+		
+		Utils::debug($query);
 		
 		$query.= ' ORDER BY date DESC';
 		if($number != null) {
