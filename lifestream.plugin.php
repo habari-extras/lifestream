@@ -155,8 +155,6 @@ class LifeStream extends Plugin
 			}
 		}
 		
-		Utils::debug($query);
-		
 		$query.= ' ORDER BY date DESC';
 		if($number != null) {
 			$query.= ' LIMIT ' . $offset . ', ' . $number;
