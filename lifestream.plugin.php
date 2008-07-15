@@ -140,7 +140,7 @@ class LifeStream extends Plugin
 		}
 	}
 
-	public function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object') {
+	public function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object', $start = null, $end = null) {
 		$query= '';
 		$query.= 'SELECT * FROM ' . DB::table('l_data');
 		
@@ -148,8 +148,15 @@ class LifeStream extends Plugin
 			$query.= " WHERE name= '$type'";
 		}
 		
+		if($start != null && $end != null) {
+			$query.= " WHERE date BETWEEN $start AND $end";
+		}
+		
 		$query.= ' ORDER BY date DESC';
-		$query.= ' LIMIT ' . $offset . ', ' . $number;
+		if($number != null) {
+			$query.= ' LIMIT ' . $offset . ', ' . $number;
+		}
+		
 		$results = DB::get_results( $query );
 
 		if($format == 'object') {
