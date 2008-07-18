@@ -134,9 +134,12 @@ class LifeStream extends Plugin
 		}
 	}
 	
-	public function insert($entries = array()) {
-		foreach($entries as $entry) {
-			DB::insert(DB::table('l_data'), $entry);
+	public function insert( $entries = array() ) {
+		foreach( $entries as $entry) {
+			$check= DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . " WHERE link= ". $entry['link'] );
+			if( !$check ) {
+				DB::insert( DB::table( 'l_data' ), $entry );
+			}
 		}
 	}
 
@@ -236,7 +239,7 @@ class LifeStreamHandler extends ActionHandler
 			}
 		}
 
-		LifeStream::insert($this->stream_contents);
+		LifeStream::insert( $this->stream_contents );
 		
 		return $this->stream_contents;
 	}
