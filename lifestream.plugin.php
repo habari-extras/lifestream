@@ -1,6 +1,4 @@
 <?php
-
-require 'simplepie.php';
 require 'idna_convert.php';
 
 class LifeStream extends Plugin
@@ -54,8 +52,11 @@ class LifeStream extends Plugin
 			case 'postgresql' :
 				// need to figure out what schema changes are needed for postgreSQL
 			break;	
+		}
+		
+		$this->add_template('lifestream_template', dirname(__FILE__) . '/lifestream_template.php');
+		
 	}
-}
 	
 	public function filter_rewrite_rules( $rules ) {
 		$rules[] = new RewriteRule(array(
@@ -136,7 +137,7 @@ class LifeStream extends Plugin
 	
 	public function insert( $entries = array() ) {
 		foreach( $entries as $entry) {
-			$check= DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . " WHERE link= ". $entry['link'] );
+			$check= DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . " WHERE link= '" . $entry['link'] . '"' );
 			if( !$check ) {
 				DB::insert( DB::table( 'l_data' ), $entry );
 			}
@@ -211,11 +212,12 @@ class LifeStreamHandler extends ActionHandler
 		}
 		
 		$offset = $vars['page'] * Options::get('lifestream__perpage');
-		
+			
 		$this->theme->assign( 'lifestream', LifeStream::get_entries($vars['type'], $offset, Options::get('lifestream__perpage')) );
 		$this->theme->assign( 'title', 'Lifestream - ' . Options::get( 'title' ) );
 		$this->theme->assign( 'streams', $this->config->stream );
 		$this->theme->display( 'lifestream' );
+		$this->$theme->fetch( 'lifestream_template' );
 	}
 	
 	public function fetch_feeds() {
@@ -238,9 +240,7 @@ class LifeStreamHandler extends ActionHandler
 				}
 			}
 		}
-
 		LifeStream::insert( $this->stream_contents );
-		
 		return $this->stream_contents;
 	}
 
