@@ -234,9 +234,8 @@ class LifeStreamHandler extends ActionHandler
 					$data['date']= strtotime( substr( $entry->get_date(), 0, 25 ) );
 					if ( $enclosure = $entry->get_enclosure( 0 ) ) {
 						$data['data'] = $enclosure->get_link();
-						$this->stream_contents[$date]= $data;
 					}
-					
+					$this->stream_contents[$date]= $data;
 				}
 			}
 		}
