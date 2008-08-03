@@ -218,7 +218,7 @@ class LifeStreamHandler extends ActionHandler
 		$this->theme->assign( 'title', 'Lifestream - ' . Options::get( 'title' ) );
 		$this->theme->assign( 'streams', $this->config->stream );
 		$this->theme->display( 'lifestream' );
-		$this->$theme->fetch( 'lifestream_template' );
+		$this->theme->fetch( 'lifestream_template' );
 	}
 	
 	public function fetch_feeds() {
