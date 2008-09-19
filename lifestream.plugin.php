@@ -1,10 +1,10 @@
 <?php
-require 'idna_convert.php';
-require 'simplepie.php';
+//require 'idna_convert.php';
+//require 'simplepie.php';
 
 class LifeStream extends Plugin
 {
-	const VERSION= '1.0';
+	const VERSION = '1.0';
 	
 	public function info()
 	{
@@ -111,23 +111,23 @@ class LifeStream extends Plugin
 				// Create a new Form called 'lifestream'
 				$ui = new FormUI( 'lifestream' );
 				// Add a text control for the feed URL
-				$feedurl= $ui->append('text', 'feedurl', 'lifestream__feedurl', _t('Feed URL'));
+				$feedurl = $ui->append('text', 'feedurl', 'lifestream__feedurl', _t('Feed URL'));
 				// Mark the field as required
 				$feedurl->add_validator('validate_required');
 				// Mark the field as requiring a valid URL
 				$feedurl->add_validator('validate_url');
 				
 				// Add a text control for the rewrite base
-				$rewritebase= $ui->append('text', 'lifeurl', 'lifestream__lifeurl', _t('Lifestream URL'));
+				$rewritebase = $ui->append('text', 'lifeurl', 'lifestream__lifeurl', _t('Lifestream URL'));
 				// Mark the field as required
 				$rewritebase->add_validator('validate_required');
 				
 				// Add a text control for the entries per page
-				$perpage= $ui->append('text', 'perpage', 'lifestream__perpage', _t('Items Per Page'));
+				$perpage = $ui->append('text', 'perpage', 'lifestream__perpage', _t('Items Per Page'));
 				// Mark the field as required
 				$perpage->add_validator('validate_required');
 				
-				$submit= $ui->append( 'submit', 'submit', _t('Save') );
+				$submit = $ui->append( 'submit', 'submit', _t('Save') );
 
 				// Display the form
 				$ui->out();
@@ -138,7 +138,7 @@ class LifeStream extends Plugin
 	
 	public function insert( $entries = array() ) {
 		foreach( $entries as $entry) {
-			$check= DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . ' WHERE link= "' . $entry['link'] . '"' );
+			$check = DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . ' WHERE link= "' . $entry['link'] . '"' );
 			if( !$check ) {
 				DB::insert( DB::table( 'l_data' ), $entry );
 			}
@@ -146,7 +146,7 @@ class LifeStream extends Plugin
 	}
 
 	public function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object', $start = null, $end = null) {
-		$query= '';
+		$query = '';
 		$query.= 'SELECT * FROM ' . DB::table('l_data');
 		
 		if($type != 'any' && $start == null && $end == null) {
@@ -192,11 +192,11 @@ class LifeStreamHandler extends ActionHandler
 	private $stream_contents;
 	private $config;
 	private $streams;
-	private $theme= null;
+	private $theme = null;
 	
 	public function __construct() {
-		$this->config= simplexml_load_file( dirname( __FILE__ ) . '/lifestream.config.xml' );
-		$this->theme= Themes::create();
+		$this->config = simplexml_load_file( dirname( __FILE__ ) . '/lifestream.config.xml' );
+		$this->theme = Themes::create();
 	}
 	
 	public function act_display_lifestream() {
@@ -227,7 +227,7 @@ class LifeStreamHandler extends ActionHandler
 			$feed->handle_content_type();
 			if( $feed->data ) {
 				foreach( $feed->get_items() as $entry ) {
-					$name= $stream['name'];
+					$name = $stream['name'];
 					$date = strtotime( substr( $entry->get_date(), 0, 25 ) );
 					$data['name']= (string) $name;
 					$data['content']= $entry->get_title();
