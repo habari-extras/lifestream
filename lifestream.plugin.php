@@ -1,6 +1,6 @@
 <?php
-//require 'idna_convert.php';
-//require 'simplepie.php';
+require 'idna_convert.php';
+require 'simplepie.php';
 
 class LifeStream extends Plugin
 {
