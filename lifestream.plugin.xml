@@ -1,0 +1,9 @@
+<plugin>
+	<name>CJD Lifestream</name>
+	<url>http://chrisjdavis.org/</url>
+	<author>Chris J. Davis and Drunken Monkey Labs</author>
+	<authorurl>http://chrisjdavis.org/</authorurl>
+	<description>Lifestream for Habari.</description>
+	<license>GPL</license>
+</plugin>
+
