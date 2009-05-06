@@ -1,6 +1,16 @@
 <?php
+
+// Remove E_STRICT, and E_DEPRECATED if needed (PHP 5.3+) for external PHP4 code
+$old_error_reporting = error_reporting();
+if( version_compare( PHP_VERSION, '5.3', '>=' ) ) {
+	error_reporting( $old_error_reporting ^ E_STRICT ^ E_DEPRECATED );
+}
+else {
+	error_reporting( $old_error_reporting ^ E_STRICT );
+}
 require 'idna_convert.php';
 require 'simplepie.php';
+error_reporting( $old_error_reporting );
 
 class LifeStream extends Plugin
 {
@@ -136,7 +146,7 @@ class LifeStream extends Plugin
 		}
 	}
 	
-	public function insert( $entries = array() ) {
+	public static function insert( $entries = array() ) {
 		foreach( $entries as $entry) {
 			$check = DB::get_results( "SELECT ID FROM " . DB::table( 'l_data' ) . ' WHERE link= "' . $entry['link'] . '"' );
 			if( !$check ) {
@@ -145,7 +155,7 @@ class LifeStream extends Plugin
 		}
 	}
 
-	public function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object', $start = null, $end = null) {
+	public static function get_entries($type = 'any', $offset = 0, $number = 20, $format = 'object', $start = null, $end = null) {
 		$query = '';
 		$query.= 'SELECT * FROM ' . DB::table('l_data');
 		
@@ -192,7 +202,7 @@ class LifeStreamHandler extends ActionHandler
 	private $stream_contents;
 	private $config;
 	private $streams;
-	private $theme = null;
+	public $theme = null;
 	
 	public function __construct() {
 		$this->config = simplexml_load_file( dirname( __FILE__ ) . '/lifestream.config.xml' );
@@ -222,17 +232,25 @@ class LifeStreamHandler extends ActionHandler
 	}
 	
 	public function fetch_feeds() {
+		$this->stream_contents = array();
+		// Remove E_STRICT, and E_DEPRECATED if needed (PHP 5.3+) for external PHP4 code
+		$old_error_reporting = error_reporting();
+		if( version_compare( PHP_VERSION, '5.3', '>=' ) ) {
+			error_reporting( $old_error_reporting ^ E_STRICT ^ E_DEPRECATED );
+		}
+		else {
+			error_reporting( $old_error_reporting ^ E_STRICT );
+		}
 		foreach ( $this->config->stream as $stream ) {
 			$feed = new SimplePie( (string) $stream['feedURL'], HABARI_PATH . '/' . (string) $this->config->cache['location'], (int) $this->config->cache['expire'] );
-			$feed->handle_content_type();
 			if( $feed->data ) {
 				foreach( $feed->get_items() as $entry ) {
 					$name = $stream['name'];
-					$date = strtotime( substr( $entry->get_date(), 0, 25 ) );
+					$date = $entry->get_date('U');
 					$data['name']= (string) $name;
 					$data['content']= $entry->get_title();
 					$data['link']= $entry->get_permalink();
-					$data['date']= strtotime( substr( $entry->get_date(), 0, 25 ) );
+					$data['date']= $date;
 					if ( $enclosure = $entry->get_enclosure( 0 ) ) {
 						$data['data'] = $enclosure->get_link();
 					}
@@ -240,6 +258,8 @@ class LifeStreamHandler extends ActionHandler
 				}
 			}
 		}
+		// Go back to the old
+		error_reporting( $old_error_reporting );
 		LifeStream::insert( $this->stream_contents );
 		return $this->stream_contents;
 	}
