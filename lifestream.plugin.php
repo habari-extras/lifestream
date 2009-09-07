@@ -16,19 +16,6 @@ class LifeStream extends Plugin
 {
 	const VERSION = '1.0';
 	
-	public function info()
-	{
-		return array (
-			'name' => 'CJD Lifestream',
-			'url' => 'http://chrisjdavis.org/',
-			'author' => 'Chris J. Davis and Drunken Monkey Labs',
-			'authorurl' => 'http://chrisjdavis.org/',
-			'version' => self::VERSION,
-			'description' => 'Lifestream for Habari.',
-			'license' => 'GPL',
-		);
-	}
-	
 	public function action_init() {
 		DB::register_table( 'l_data' );
 		DB::register_table( 'l_source' );

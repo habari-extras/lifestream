@@ -1,9 +1,11 @@
-<plugin>
+<?xml version="1.0" encoding="utf-8" ?>
+<pluggable type="plugin">
 	<name>CJD Lifestream</name>
-	<url>http://chrisjdavis.org/</url>
-	<author>Chris J. Davis and Drunken Monkey Labs</author>
-	<authorurl>http://chrisjdavis.org/</authorurl>
-	<description>Lifestream for Habari.</description>
 	<license>GPL</license>
-</plugin>
-
+	<author url="http://chrisjdavis.org/" >Chris J. Davis</author>
+	<author url="http://habariproject.org/">Habari Community</author>
+	<url>http://chrisjdavis.org</url>
+	<version>1.0</version>
+	<description><![CDATA[Lifestream for Habari.]]></description>
+	<copyright>2009</copyright>
+</pluggable>
