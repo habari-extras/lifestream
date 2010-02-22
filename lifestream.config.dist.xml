@@ -14,4 +14,4 @@
 <stream name="allconsuming" feedURL="feed://www.allconsuming.net/person/chrisjdavis/rss" URL="http://allconsuming.net/person/chrisjdavis" label="What I am consuming." />
 		
 <cache location="user/tmp" expire="60" />
-</config>
+</config> 
